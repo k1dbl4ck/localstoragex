@@ -1,6 +1,6 @@
 {
   "name": "localstoragex",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A localStorage polyfill for Cordova, Safari and Chrome - that just works",
   "main": "./dist/index.js",
   "typings": "./dist/index.d.ts",
@@ -10,8 +10,13 @@
     "link": "npm run build && npm link",
     "test": "./node_modules/karma/bin/karma start ./karma.conf.js"
   },
-  "author": "k1dbl4ck@gmail.com (Werner Venter)",
+  "author": "Werner Venter <k1dbl4ck@gmail.com>",
+  "homepage": "https://github.com/k1dbl4ck/localstoragex#readme",
   "license": "MIT",
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/k1dbl4ck/localstoragex.git"
+  },
   "devDependencies": {
     "@types/es6-promise": "^3.3.0",
     "@types/jasmine": "^2.8.2",
