@@ -49,3 +49,13 @@ npm run test
 Submit a PR or log an issue
 
 
+
+## Changelog
+
+### 0.0.4 - 0.0.5
+- Loads current localStorage (if any) into localstoragex on init
+- Init only yields once device (cordova) or document (web) is ready
+
+### 0.0.1 - 0.0.3 
+- Initial 
+

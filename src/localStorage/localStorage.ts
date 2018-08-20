@@ -7,6 +7,7 @@ export class LocalStorageX {
     cache:any = {}; 
     driver:any; 
     store:any = false; 
+    loaded:boolean = false; 
     defines:localStoragePrototypeDefintion[] = [
         { name: 'setItem', value:this.setItem }, 
         { name: 'getItem', value:this.getItem }, 
@@ -25,41 +26,75 @@ export class LocalStorageX {
 
     public async init() { 
 
-        if(this.store) return; 
-
-        console.info("localStorageX starting..."); 
+        if(this.loaded) return; 
 
         try { 
 
-            if(!!(<any>window).cordova) {
+            await this.ready(); 
+            
+            if((<any>window).cordova) {
               localForage.defineDriver(CordovaSQLiteDriver);
             } else { 
               this.config.driverOrder.splice(0, 1); 
             }
-            console.info("localStorageX loading with config : ", this.config); 
             this.store = localForage.createInstance(this.config);
 
             await this.store.ready(); 
             this.driver = this.store.driver();
 
+            for ( var i = 0, len = localStorage.length; i < len; ++i ) {
+                let key = localStorage.key(i); 
+                let value = localStorage.getItem( <any>key );
+                if(key) await this.setItem(key, value)
+            }
+
             await this.store.iterate( (value:any, key:string, index:number) => {    
-                console.info("localStorageX loading in memory : ", key, "=>", value); 
                 storage.cache[key] = value; 
             })
-                
+            
             this.defines.forEach( define => { 
                 (<any>Storage).prototype[define.name] = define.value; 
             });
 
-            console.info("localStorageX ready with driver : ", this.driver); 
+            console.info("localstoragex ready"); 
+            this.loaded = true; 
+            return;  
 
         } catch (error) { 
             throw new Error("localStorageX.init() : "+error.stack); 
         }
 
-        return this;  
     }
 
+    /**
+     * Waits for cordova to be ready if implemented
+     * @returns {Promise<any>}
+     */
+    private ready() { 
+        return new Promise( (resolve, reject) => { 
+            if((<any>window).cordova) document.addEventListener("deviceready", resolve, false); 
+            else { 
+                (<any>window).readyHandlers = [];
+                (<any>window).ready = (handler:any) => {
+                  (<any>window).readyHandlers.push(handler);
+                  (<any>window).handleState();
+                };
+                
+                (<any>window).handleState = () => {
+                  if (['interactive', 'complete'].indexOf(document.readyState) > -1) {
+                    while((<any>window).readyHandlers.length > 0) {
+                      ((<any>window).readyHandlers.shift())();
+                    }
+                  }
+                };
+                document.onreadystatechange = (<any>window).handleState;
+                (<any>window).ready( () => { 
+                    resolve();  
+                }); 
+            }
+        })
+    }
+    
     /**
      * Sets a value to localStorage by key
      *

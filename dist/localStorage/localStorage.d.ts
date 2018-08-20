@@ -3,10 +3,16 @@ export declare class LocalStorageX {
     cache: any;
     driver: any;
     store: any;
+    loaded: boolean;
     defines: localStoragePrototypeDefintion[];
     config: any;
     constructor();
-    init(): Promise<this | undefined>;
+    init(): Promise<void>;
+    /**
+     * Waits for cordova to be ready if implemented
+     * @returns {Promise<any>}
+     */
+    private ready;
     /**
      * Sets a value to localStorage by key
      *

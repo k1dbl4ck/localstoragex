@@ -39,6 +39,7 @@ var LocalStorageX = /** @class */ (function () {
     function LocalStorageX() {
         this.cache = {};
         this.store = false;
+        this.loaded = false;
         this.defines = [
             { name: 'setItem', value: this.setItem },
             { name: 'getItem', value: this.getItem },
@@ -55,45 +56,89 @@ var LocalStorageX = /** @class */ (function () {
     }
     LocalStorageX.prototype.init = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var error_1;
+            var i, len, key, value, error_1;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        if (this.store)
+                        if (this.loaded)
                             return [2 /*return*/];
-                        console.info("localStorageX starting...");
                         _a.label = 1;
                     case 1:
-                        _a.trys.push([1, 4, , 5]);
-                        if (!!window.cordova) {
+                        _a.trys.push([1, 9, , 10]);
+                        return [4 /*yield*/, this.ready()];
+                    case 2:
+                        _a.sent();
+                        if (window.cordova) {
                             localForage.defineDriver(CordovaSQLiteDriver);
                         }
                         else {
                             this.config.driverOrder.splice(0, 1);
                         }
-                        console.info("localStorageX loading with config : ", this.config);
                         this.store = localForage.createInstance(this.config);
                         return [4 /*yield*/, this.store.ready()];
-                    case 2:
+                    case 3:
                         _a.sent();
                         this.driver = this.store.driver();
-                        return [4 /*yield*/, this.store.iterate(function (value, key, index) {
-                                console.info("localStorageX loading in memory : ", key, "=>", value);
-                                storage.cache[key] = value;
-                            })];
-                    case 3:
+                        i = 0, len = localStorage.length;
+                        _a.label = 4;
+                    case 4:
+                        if (!(i < len)) return [3 /*break*/, 7];
+                        key = localStorage.key(i);
+                        value = localStorage.getItem(key);
+                        if (!key) return [3 /*break*/, 6];
+                        return [4 /*yield*/, this.setItem(key, value)];
+                    case 5:
+                        _a.sent();
+                        _a.label = 6;
+                    case 6:
+                        ++i;
+                        return [3 /*break*/, 4];
+                    case 7: return [4 /*yield*/, this.store.iterate(function (value, key, index) {
+                            storage.cache[key] = value;
+                        })];
+                    case 8:
                         _a.sent();
                         this.defines.forEach(function (define) {
                             Storage.prototype[define.name] = define.value;
                         });
-                        console.info("localStorageX ready with driver : ", this.driver);
-                        return [3 /*break*/, 5];
-                    case 4:
+                        console.info("localstoragex ready");
+                        this.loaded = true;
+                        return [2 /*return*/];
+                    case 9:
                         error_1 = _a.sent();
                         throw new Error("localStorageX.init() : " + error_1.stack);
-                    case 5: return [2 /*return*/, this];
+                    case 10: return [2 /*return*/];
                 }
             });
+        });
+    };
+    /**
+     * Waits for cordova to be ready if implemented
+     * @returns {Promise<any>}
+     */
+    LocalStorageX.prototype.ready = function () {
+        return new Promise(function (resolve, reject) {
+            if (window.cordova)
+                document.addEventListener("deviceready", resolve, false);
+            else {
+                window.readyHandlers = [];
+                window.ready = function (handler) {
+                    window.readyHandlers.push(handler);
+                    window.handleState();
+                };
+                window.handleState = function () {
+                    if (['interactive', 'complete'].indexOf(document.readyState) > -1) {
+                        while (window.readyHandlers.length > 0) {
+                            (window.readyHandlers.shift())();
+                        }
+                    }
+                };
+                document.onreadystatechange = window.handleState;
+                window.ready(function () {
+                    console.log("READY");
+                    resolve();
+                });
+            }
         });
     };
     /**
