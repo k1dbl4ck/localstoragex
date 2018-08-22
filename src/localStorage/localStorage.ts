@@ -24,13 +24,13 @@ export class LocalStorageX {
 
     constructor() {}
 
-    public async init() { 
+    public async init(refresh:boolean = false) { 
 
-        if(this.loaded) return; 
+        if(this.loaded && !refresh) return; 
 
         try { 
 
-            await this.ready(); 
+            if(!refresh) await this.ready(); 
             
             if((<any>window).cordova) {
               localForage.defineDriver(CordovaSQLiteDriver);
@@ -42,10 +42,17 @@ export class LocalStorageX {
             await this.store.ready(); 
             this.driver = this.store.driver();
 
-            for ( var i = 0, len = localStorage.length; i < len; ++i ) {
+            for ( let i = 0, len = localStorage.length; i < len; ++i ) {
                 let key = localStorage.key(i); 
                 let value = localStorage.getItem( <any>key );
                 if(key) await this.setItem(key, value)
+            }
+
+            if(refresh) { 
+                for ( let key in this.cache ) {
+                   if(key) await this.setItem(key, this.cache[key])
+                }
+                this.cache = {}; 
             }
 
             await this.store.iterate( (value:any, key:string, index:number) => {    
@@ -61,9 +68,18 @@ export class LocalStorageX {
             return;  
 
         } catch (error) { 
-            throw new Error("localStorageX.init() : "+error.stack); 
+            console.warn("Could not initialize localstoragex - falling back to native localStorage API");
+            (<any>Storage) = (<any>Storage); 
         }
 
+    }
+
+    /**
+     * Reloads (re-initializes) localstoragex
+     */
+    private reload() { 
+        console.debug("localstoragex: reloading"); 
+        storage.init(true); 
     }
 
     /**
@@ -104,13 +120,14 @@ export class LocalStorageX {
      */
     public async setItem(key:string, value:any) { 
         try { 
-            let encodedKey = btoa(key); 
-            if(JSON.stringify(storage.cache[encodedKey]) == JSON.stringify(value)) return;
-            storage.cache[encodedKey] = value; 
-            return await storage.store.setItem(encodedKey, value)
+          let encodedKey = btoa(key); 
+          if(JSON.stringify(storage.cache[encodedKey]) == JSON.stringify(value)) return;
+          storage.cache[encodedKey] = value; 
+          await storage.store.setItem(encodedKey, value);
+          return; 
         } catch (error) { 
-            delete storage.cache[key];  
-            throw new Error("localStorageX.setItem() : "+error.stack); 
+            console.warn("localstoragex.setItem() : "+error.stack);  
+            storage.reload(); 
         }
     }
 
@@ -134,11 +151,12 @@ export class LocalStorageX {
         let encodedKey = btoa(key); 
         if(encodedKey && storage.cache[encodedKey]) { 
          try { 
-         await storage.store.removeItem(encodedKey);
-         delete storage.cache[encodedKey]; 
-         return; 
+          delete storage.cache[encodedKey]; 
+          await storage.store.removeItem(encodedKey);
+          return; 
          } catch (error) { 
-            throw new Error("localStorageX.removeItem() : "+error.stack);  
+            console.warn("localstoragex.removeItem() : "+error.stack);  
+            this.reload(); 
          }
         }
     }
@@ -168,11 +186,12 @@ export class LocalStorageX {
      */
     public async clear() {
         try {
-          await storage.store.clear();
           storage.cache = {}; 
+          await storage.store.clear();
           return;  
         } catch (error) { 
-            throw new Error("localStorageX.clear() : "+error.stack);  
+            console.warn("localstoragex.clear() : "+error.stack);
+            this.reload();   
         }     
     }
 

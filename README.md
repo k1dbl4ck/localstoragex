@@ -52,6 +52,9 @@ Submit a PR or log an issue
 
 ## Changelog
 
+### 0.0.6
+- Attempts to reload localstoragex in the event of a localforage error due to e.g. clearing browser / app cache while app is running
+
 ### 0.0.4 - 0.0.5
 - Loads current localStorage (if any) into localstoragex on init
 - Init only yields once device (cordova) or document (web) is ready

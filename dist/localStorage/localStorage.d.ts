@@ -7,7 +7,11 @@ export declare class LocalStorageX {
     defines: localStoragePrototypeDefintion[];
     config: any;
     constructor();
-    init(): Promise<void>;
+    init(refresh?: boolean): Promise<void>;
+    /**
+     * Reloads (re-initializes) localstoragex
+     */
+    private reload;
     /**
      * Waits for cordova to be ready if implemented
      * @returns {Promise<any>}
@@ -20,7 +24,7 @@ export declare class LocalStorageX {
      * @param {any} value
      * @returns {Promise<any>}
      */
-    setItem(key: string, value: any): Promise<any>;
+    setItem(key: string, value: any): Promise<void>;
     /**
      * Gets value from localStorage by key
      *

@@ -54,20 +54,24 @@ var LocalStorageX = /** @class */ (function () {
             driverOrder: ['sqlite', 'indexeddb', 'websql', 'localstorage']
         };
     }
-    LocalStorageX.prototype.init = function () {
+    LocalStorageX.prototype.init = function (refresh) {
+        if (refresh === void 0) { refresh = false; }
         return __awaiter(this, void 0, void 0, function () {
-            var i, len, key, value, error_1;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
+            var i, len, key, value, _a, _b, _i, key, error_1;
+            return __generator(this, function (_c) {
+                switch (_c.label) {
                     case 0:
-                        if (this.loaded)
+                        if (this.loaded && !refresh)
                             return [2 /*return*/];
-                        _a.label = 1;
+                        _c.label = 1;
                     case 1:
-                        _a.trys.push([1, 9, , 10]);
+                        _c.trys.push([1, 15, , 16]);
+                        if (!!refresh) return [3 /*break*/, 3];
                         return [4 /*yield*/, this.ready()];
                     case 2:
-                        _a.sent();
+                        _c.sent();
+                        _c.label = 3;
+                    case 3:
                         if (window.cordova) {
                             localForage.defineDriver(CordovaSQLiteDriver);
                         }
@@ -76,41 +80,71 @@ var LocalStorageX = /** @class */ (function () {
                         }
                         this.store = localForage.createInstance(this.config);
                         return [4 /*yield*/, this.store.ready()];
-                    case 3:
-                        _a.sent();
+                    case 4:
+                        _c.sent();
                         this.driver = this.store.driver();
                         i = 0, len = localStorage.length;
-                        _a.label = 4;
-                    case 4:
-                        if (!(i < len)) return [3 /*break*/, 7];
+                        _c.label = 5;
+                    case 5:
+                        if (!(i < len)) return [3 /*break*/, 8];
                         key = localStorage.key(i);
                         value = localStorage.getItem(key);
-                        if (!key) return [3 /*break*/, 6];
+                        if (!key) return [3 /*break*/, 7];
                         return [4 /*yield*/, this.setItem(key, value)];
-                    case 5:
-                        _a.sent();
-                        _a.label = 6;
                     case 6:
+                        _c.sent();
+                        _c.label = 7;
+                    case 7:
                         ++i;
-                        return [3 /*break*/, 4];
-                    case 7: return [4 /*yield*/, this.store.iterate(function (value, key, index) {
+                        return [3 /*break*/, 5];
+                    case 8:
+                        if (!refresh) return [3 /*break*/, 13];
+                        _a = [];
+                        for (_b in this.cache)
+                            _a.push(_b);
+                        _i = 0;
+                        _c.label = 9;
+                    case 9:
+                        if (!(_i < _a.length)) return [3 /*break*/, 12];
+                        key = _a[_i];
+                        if (!key) return [3 /*break*/, 11];
+                        return [4 /*yield*/, this.setItem(key, this.cache[key])];
+                    case 10:
+                        _c.sent();
+                        _c.label = 11;
+                    case 11:
+                        _i++;
+                        return [3 /*break*/, 9];
+                    case 12:
+                        this.cache = {};
+                        _c.label = 13;
+                    case 13: return [4 /*yield*/, this.store.iterate(function (value, key, index) {
                             storage.cache[key] = value;
                         })];
-                    case 8:
-                        _a.sent();
+                    case 14:
+                        _c.sent();
                         this.defines.forEach(function (define) {
                             Storage.prototype[define.name] = define.value;
                         });
                         console.info("localstoragex ready");
                         this.loaded = true;
                         return [2 /*return*/];
-                    case 9:
-                        error_1 = _a.sent();
-                        throw new Error("localStorageX.init() : " + error_1.stack);
-                    case 10: return [2 /*return*/];
+                    case 15:
+                        error_1 = _c.sent();
+                        console.warn("Could not initialize localstoragex - falling back to native localStorage API");
+                        Storage = Storage;
+                        return [3 /*break*/, 16];
+                    case 16: return [2 /*return*/];
                 }
             });
         });
+    };
+    /**
+     * Reloads (re-initializes) localstoragex
+     */
+    LocalStorageX.prototype.reload = function () {
+        console.debug("localstoragex: reloading");
+        storage.init(true);
     };
     /**
      * Waits for cordova to be ready if implemented
@@ -135,7 +169,6 @@ var LocalStorageX = /** @class */ (function () {
                 };
                 document.onreadystatechange = window.handleState;
                 window.ready(function () {
-                    console.log("READY");
                     resolve();
                 });
             }
@@ -160,11 +193,14 @@ var LocalStorageX = /** @class */ (function () {
                             return [2 /*return*/];
                         storage.cache[encodedKey] = value;
                         return [4 /*yield*/, storage.store.setItem(encodedKey, value)];
-                    case 1: return [2 /*return*/, _a.sent()];
+                    case 1:
+                        _a.sent();
+                        return [2 /*return*/];
                     case 2:
                         error_2 = _a.sent();
-                        delete storage.cache[key];
-                        throw new Error("localStorageX.setItem() : " + error_2.stack);
+                        console.warn("localstoragex.setItem() : " + error_2.stack);
+                        storage.reload();
+                        return [3 /*break*/, 3];
                     case 3: return [2 /*return*/];
                 }
             });
@@ -196,14 +232,16 @@ var LocalStorageX = /** @class */ (function () {
                         _a.label = 1;
                     case 1:
                         _a.trys.push([1, 3, , 4]);
+                        delete storage.cache[encodedKey];
                         return [4 /*yield*/, storage.store.removeItem(encodedKey)];
                     case 2:
                         _a.sent();
-                        delete storage.cache[encodedKey];
                         return [2 /*return*/];
                     case 3:
                         error_3 = _a.sent();
-                        throw new Error("localStorageX.removeItem() : " + error_3.stack);
+                        console.warn("localstoragex.removeItem() : " + error_3.stack);
+                        this.reload();
+                        return [3 /*break*/, 4];
                     case 4: return [2 /*return*/];
                 }
             });
@@ -237,14 +275,16 @@ var LocalStorageX = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         _a.trys.push([0, 2, , 3]);
+                        storage.cache = {};
                         return [4 /*yield*/, storage.store.clear()];
                     case 1:
                         _a.sent();
-                        storage.cache = {};
                         return [2 /*return*/];
                     case 2:
                         error_4 = _a.sent();
-                        throw new Error("localStorageX.clear() : " + error_4.stack);
+                        console.warn("localstoragex.clear() : " + error_4.stack);
+                        this.reload();
+                        return [3 /*break*/, 3];
                     case 3: return [2 /*return*/];
                 }
             });
